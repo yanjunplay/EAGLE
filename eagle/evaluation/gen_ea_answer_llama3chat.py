@@ -153,7 +153,7 @@ def get_model_answers(
             torch.cuda.synchronize()
             start_time = time.time()
 
-            output_ids, new_token, idx = model.eagenerate(
+            output_ids, new_token, idx, _ = model.eagenerate(
                 torch.as_tensor(input_ids).cuda(),
                 temperature=temperature,
                 log=True,
@@ -204,9 +204,13 @@ def get_model_answers(
             })
     print('Warmup done')
 
+    total_question_num = 0
+    total_decode_steps = 0
+    total_acc_len = 0    
+
     # questions=questions[6:]
     for question in tqdm(questions):
-
+        total_question_num += 1
         choices = []
         for i in range(num_choices):
             torch.manual_seed(i)
@@ -235,12 +239,15 @@ def get_model_answers(
                 torch.cuda.synchronize()
                 start_time = time.time()
 
-                output_ids, new_token, idx = model.eagenerate(
+                output_ids, new_token, idx, total_acc = model.eagenerate(
                     torch.as_tensor(input_ids).cuda(),
                     temperature=temperature,
                     log=True,
                     is_llama3=True,
                 )
+                total_decode_steps += idx
+                total_acc_len += total_acc
+            
                 torch.cuda.synchronize()
                 total_time = time.time() - start_time
                 output_ids = output_ids[0][len(input_ids[0]):]
@@ -296,6 +303,10 @@ def get_model_answers(
                 "tstamp": time.time(),
             }
             fout.write(json.dumps(ans_json) + "\n")
+
+        print(f"------------ Current analysis ----- {total_question_num=} {total_decode_steps=} {total_acc_len=}. Avg accept length: {total_acc_len/total_decode_steps}.")
+
+    print(f"------------ Final analysis ----- {total_question_num=} {total_decode_steps=} {total_acc_len=}. Avg accept length: {total_acc_len/total_decode_steps}.")
 
 
 def reorg_answer_file(answer_file):

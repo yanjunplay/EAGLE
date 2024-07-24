@@ -244,7 +244,11 @@ class EaModel(nn.Module):
         )
         new_token = 0
 
-        for idx in range(max_length):
+        total_decoding_steps: int = 0
+        total_accept_length: int = 0
+
+        for _ in range(max_length):
+            total_decoding_steps += 1
             #with Timer("all"):
             self.base_model.model.tree_mask = tree_mask
 
@@ -265,6 +269,9 @@ class EaModel(nn.Module):
             best_candidate, accept_length, sample_p = evaluate_posterior(
                 logits, candidates, logits_processor
             )
+
+            total_accept_length += accept_length
+
             # print(accept_length)
             #with Timer("update_inference_inputs"):
             input_ids, draft_tokens, retrieve_indices,tree_mask,tree_position_ids, new_token, hidden_state, sample_token = update_inference_inputs(
@@ -295,7 +302,7 @@ class EaModel(nn.Module):
         if not log:
             return input_ids
         else:
-            return input_ids, new_token, idx
+            return input_ids, new_token, total_decoding_steps, total_accept_length
 
 
     @torch.no_grad()
@@ -557,6 +564,3 @@ class EaModel(nn.Module):
                 break
             if input_ids.shape[1] > max_length:
                 break
-
-
-

@@ -254,6 +254,7 @@ class EaModel(nn.Module):
             self.current_length_data = current_length_data
 
         input_len = input_ids.shape[1]
+        cur_input_len = input_len
         reset_tree_mode(self)
         draft_tokens, retrieve_indices,tree_mask,tree_position_ids, logits, hidden_state, sample_token = initialize_tree(
             input_ids, self, past_key_values, logits_processor
@@ -286,8 +287,6 @@ class EaModel(nn.Module):
                 logits, candidates, logits_processor
             )
 
-            total_accept_length += accept_length
-
             # print(accept_length)
             #with Timer("update_inference_inputs"):
             input_ids, draft_tokens, retrieve_indices,tree_mask,tree_position_ids, new_token, hidden_state, sample_token = update_inference_inputs(
@@ -304,6 +303,9 @@ class EaModel(nn.Module):
                 hidden_state_new,
                 sample_p
             )
+
+            total_accept_length += input_ids.shape[1] - cur_input_len
+            cur_input_len = input_ids.shape[1]
 
             if is_llama3:
                 if stop_token_id in input_ids[0, input_len:].tolist():

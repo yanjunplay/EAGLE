@@ -1,7 +1,7 @@
 import copy
 import random
 
-# typing 
+# typing
 from typing import List, Tuple
 import time
 import torch

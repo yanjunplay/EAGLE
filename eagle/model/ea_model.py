@@ -16,7 +16,7 @@ from huggingface_hub import hf_hub_download
 from .cnets import Model
 from .configs import EConfig
 from huggingface_hub import hf_hub_download
-
+from safetensors.torch import load_file
 
 
 
@@ -101,13 +101,29 @@ class EaModel(nn.Module):
             )
 
         configpath=os.path.join(ea_model_path,"config.json")
-        if not os.path.exists(configpath):
-            configpath = hf_hub_download(ea_model_path, "config.json")
+        assert os.path.exists(configpath)
+        # if not os.path.exists(configpath):
+        #     configpath = hf_hub_download(ea_model_path, "config.json")
         load_model_path=os.path.join(ea_model_path, "pytorch_model.bin")
-        if not os.path.exists(load_model_path):
-            load_model_path=hf_hub_download(ea_model_path, "pytorch_model.bin")
-        ea_layer_state_dict = torch.load(load_model_path,
-                                         map_location="cpu")
+        # if not os.path.exists(load_model_path):
+        #     load_model_path=hf_hub_download(ea_model_path, "pytorch_model.bin")
+
+        load_model_path = os.path.join(ea_model_path, "model.safetensors")
+        assert os.path.exists(load_model_path)
+
+        ea_layer_state_dict = load_file(load_model_path)
+
+        prefix = "module."
+        ea_layer_state_dict = {
+            k[len(prefix) :] if k.startswith(prefix) else k: v
+            for k, v in ea_layer_state_dict.items()
+        }
+
+        if "fc.bias" in ea_layer_state_dict:
+            del ea_layer_state_dict["fc.bias"]
+
+        #ea_layer_state_dict = torch.load(load_model_path,
+        #                                 map_location="cpu")
         model = cls(
             base_model,
             base_model_path,

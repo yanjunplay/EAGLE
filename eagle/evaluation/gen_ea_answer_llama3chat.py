@@ -206,7 +206,8 @@ def get_model_answers(
 
     total_question_num = 0
     total_decode_steps = 0
-    total_acc_len = 0    
+    total_acc_len = 0
+    total_gen_time_sec = 0
 
     # questions=questions[6:]
     for question in tqdm(questions):
@@ -247,9 +248,10 @@ def get_model_answers(
                 )
                 total_decode_steps += idx
                 total_acc_len += total_acc
-            
+
                 torch.cuda.synchronize()
                 total_time = time.time() - start_time
+                total_gen_time_sec += total_time
                 output_ids = output_ids[0][len(input_ids[0]):]
                 # be consistent with the template's stop_token_ids
                 stop_token_ids = [
@@ -304,9 +306,9 @@ def get_model_answers(
             }
             fout.write(json.dumps(ans_json) + "\n")
 
-        print(f"------------ Current analysis ----- {total_question_num=} {total_decode_steps=} {total_acc_len=}. Avg accept length: {total_acc_len/total_decode_steps}.")
+        print(f"------------ Current analysis ----- {total_question_num=} {total_decode_steps=} {total_acc_len=} {total_gen_time_sec=}. Avg accept length: {total_acc_len/total_decode_steps}.")
 
-    print(f"------------ Final analysis ----- {total_question_num=} {total_decode_steps=} {total_acc_len=}. Avg accept length: {total_acc_len/total_decode_steps}.")
+    print(f"------------ Final analysis ----- {total_question_num=} {total_decode_steps=} {total_acc_len=} {total_gen_time_sec=}. Avg accept length: {total_acc_len/total_decode_steps}.")
 
 
 def reorg_answer_file(answer_file):

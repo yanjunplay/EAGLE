@@ -299,8 +299,13 @@ def get_model_answers(
             })
     print('Warmup done')
 
+    total_question_num = 0
+    total_decode_steps = 0
+    total_gen_time_sec = 0
+
     # questions=questions[6:]
     for question in tqdm(questions):
+        total_question_num += 1
 
         choices = []
         for i in range(num_choices):
@@ -336,8 +341,11 @@ def get_model_answers(
                     log=True,
                     is_llama3=True,
                 )
+                total_decode_steps += idx
+
                 torch.cuda.synchronize()
                 total_time = time.time() - start_time
+                total_gen_time_sec += total_time
                 output_ids = output_ids[0][len(input_ids[0]):]
                 # be consistent with the template's stop_token_ids
                 stop_token_ids = [
@@ -391,6 +399,9 @@ def get_model_answers(
                 "tstamp": time.time(),
             }
             fout.write(json.dumps(ans_json) + "\n")
+        print(f"------------ Current analysis ----- {total_question_num=} {total_decode_steps=} {total_gen_time_sec=}.")
+    print(f"------------ Final analysis ----- {total_question_num=} {total_decode_steps=} {total_gen_time_sec=}.")
+
 
 
 def reorg_answer_file(answer_file):
